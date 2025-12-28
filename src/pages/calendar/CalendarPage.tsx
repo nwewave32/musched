@@ -1,13 +1,20 @@
+import { CalendarView } from "@widgets/calendar-view";
+import { Card, CardContent } from "@shared/ui";
+
 export const CalendarPage = () => {
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-gray-50 p-4">
       <div className="mx-auto max-w-7xl">
-        <h1 className="text-3xl font-bold mb-6">Calendar</h1>
-        <div className="bg-card rounded-lg shadow p-6">
-          <p className="text-muted-foreground">
-            월간 캘린더 뷰가 여기에 표시됩니다.
-          </p>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">MuSched</h1>
+          <p className="text-gray-600 mt-1">온라인 수업 스케줄 관리</p>
         </div>
+
+        <Card>
+          <CardContent className="p-6">
+            <CalendarView />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
