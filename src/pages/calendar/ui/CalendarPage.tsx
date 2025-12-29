@@ -2,13 +2,14 @@ import { getAllLessons } from "@entities/lesson/api";
 import { getAllUnavailableTimes } from "@entities/unavailable-time/api";
 import { EventDialog } from "@features/availability-management";
 import type { Lesson, UnavailableTime } from "@shared/types";
-import { Card, CardContent } from "@shared/ui";
+import { Card, CardContent, Button } from "@shared/ui";
 import { CalendarView } from "@widgets/calendar-view";
 import { useEffect, useState } from "react";
+import { useAuth } from "@shared/context/AuthContext";
 
 export const CalendarPage = () => {
-  // TODO: 실제 로그인된 사용자 ID 가져오기
-  const userId = "temp-cana-id";
+  const { currentUser, signOut } = useAuth();
+  const userId = currentUser?.id || "";
   const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>(
     []
   );
@@ -45,8 +46,18 @@ export const CalendarPage = () => {
             <p className="text-gray-600 mt-1">
               Management for online class schedule
             </p>
+            {currentUser && (
+              <p className="text-sm text-gray-500 mt-1">
+                {currentUser.email} ({currentUser.role})
+              </p>
+            )}
           </div>
-          <EventDialog userId={userId} onSuccess={loadEvents} />
+          <div className="flex gap-2">
+            <EventDialog userId={userId} onSuccess={loadEvents} />
+            <Button variant="outline" onClick={signOut}>
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (

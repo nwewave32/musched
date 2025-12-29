@@ -1,21 +1,28 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AppProviders } from "./providers";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@shared/context/AuthContext";
+import { ProtectedRoute } from "./router/ProtectedRoute";
 import "./styles/index.css";
 
 // Pages
 import { CalendarPage } from "@pages/calendar";
-import { AuthPage } from "@pages/auth";
+import { LoginPage } from "@pages/login";
 
 export const App = () => {
   return (
-    <AppProviders>
+    <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/" element={<Navigate to="/calendar" replace />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <CalendarPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
-    </AppProviders>
+    </AuthProvider>
   );
 };

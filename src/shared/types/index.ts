@@ -1,11 +1,15 @@
 import { Timestamp } from "firebase/firestore";
 
 // User types
+export type UserRole = "teacher" | "student";
+
 export interface User {
   id: string;
-  name: string;
+  email: string;
+  name?: string;
+  role: UserRole;
   timezone: string; // IANA timezone (e.g., 'Asia/Seoul', 'Asia/Manila')
-  partnerId: string;
+  partnerId?: string;
   fcmToken?: string;
   createdAt: Timestamp;
 }
