@@ -1,1 +1,1 @@
-export { AddUnavailableTimeDialog } from "./ui/AddUnavailableTimeDialog";
+export { EventDialog } from "./ui/EventDialog";

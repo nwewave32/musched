@@ -88,3 +88,14 @@ export const getUnavailableTimesInRange = async (
     ...doc.data(),
   })) as UnavailableTime[];
 };
+
+/**
+ * 모든 불가 시간 조회 (모든 사용자)
+ */
+export const getAllUnavailableTimes = async (): Promise<UnavailableTime[]> => {
+  const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
+  return querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as UnavailableTime[];
+};

@@ -8,13 +8,14 @@ import {
   isTodayCheck,
   WEEKDAY_NAMES_EN,
 } from "@shared/lib";
-import type { UnavailableTime } from "@shared/types";
+import type { UnavailableTime, Lesson } from "@shared/types";
 
 interface CalendarGridProps {
   currentDate: Date;
   selectedDate?: Date;
   onDateClick?: (date: Date) => void;
   unavailableTimes?: UnavailableTime[];
+  lessons?: Lesson[];
 }
 
 export const CalendarGrid = ({
@@ -22,7 +23,14 @@ export const CalendarGrid = ({
   selectedDate,
   onDateClick,
   unavailableTimes = [],
+  lessons = [],
 }: CalendarGridProps) => {
+  // 특정 날짜의 수업 찾기
+  const getLessonsForDate = (date: Date): Lesson[] => {
+    return lessons.filter((lesson) =>
+      isSameDayCheck(lesson.startTime.toDate(), date)
+    );
+  };
   const calendarDays = getCalendarDays(currentDate);
 
   return (
@@ -53,15 +61,23 @@ export const CalendarGrid = ({
           const isSaturday = index % 7 === 6;
 
           return (
-            <button
+            <div
               key={day.toISOString()}
               onClick={() => onDateClick?.(day)}
               className={cn(
-                "relative min-h-[80px] bg-white p-2 text-left transition-colors",
+                "relative min-h-[80px] bg-white p-2 text-left transition-colors cursor-pointer",
                 "hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500",
                 !isCurrentMonth && "bg-gray-50 text-gray-400",
                 isSelected && "bg-blue-50 ring-2 ring-inset ring-blue-500"
               )}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onDateClick?.(day);
+                }
+              }}
             >
               {/* 날짜 숫자 */}
               <span
@@ -82,41 +98,79 @@ export const CalendarGrid = ({
                   (unavailableTime) => (
                     <div
                       key={unavailableTime.id}
-                      className="text-xs p-1 rounded bg-gray-200 text-gray-700 truncate"
+                      className="w-full text-xs p-1 rounded bg-gray-200 text-gray-700 truncate text-left"
                       title={
                         unavailableTime.isAllDay
-                          ? "Unavailable for all day"
+                          ? "All Day"
                           : `${unavailableTime.startTime
                               .toDate()
-                              .toLocaleTimeString("ko-KR", {
+                              .toLocaleTimeString("en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })} - ${unavailableTime.endTime
                               .toDate()
-                              .toLocaleTimeString("ko-KR", {
+                              .toLocaleTimeString("en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })}`
                       }
                     >
                       {unavailableTime.isAllDay
-                        ? "Unavailable for all day"
+                        ? "All Day"
                         : `${unavailableTime.startTime
                             .toDate()
-                            .toLocaleTimeString("ko-KR", {
+                            .toLocaleTimeString("en-US", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })} - ${unavailableTime.endTime
                             .toDate()
-                            .toLocaleTimeString("ko-KR", {
+                            .toLocaleTimeString("en-US", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}`}
                     </div>
                   )
                 )}
+
+                {/* 수업 표시 */}
+                {getLessonsForDate(day).map((lesson) => {
+                  const statusStyles = {
+                    pending: "bg-yellow-50 border-yellow-400 text-yellow-800",
+                    confirmed: "bg-green-100 border-green-500 text-green-900",
+                    cancelled: "bg-red-50 border-red-400 text-red-800 line-through",
+                    rejected: "bg-gray-100 border-gray-400 text-gray-600 line-through",
+                  };
+
+                  return (
+                    <div
+                      key={lesson.id}
+                      className={cn(
+                        "w-full text-xs p-1 rounded border-2 truncate text-left",
+                        statusStyles[lesson.status]
+                      )}
+                      title={`Lesson: ${lesson.startTime
+                        .toDate()
+                        .toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })} - ${lesson.endTime
+                        .toDate()
+                        .toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })} (${lesson.status})`}
+                    >
+                      Lesson: {lesson.startTime
+                        .toDate()
+                        .toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                    </div>
+                  );
+                })}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

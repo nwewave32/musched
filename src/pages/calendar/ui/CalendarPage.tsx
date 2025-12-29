@@ -1,32 +1,39 @@
-import { getUserUnavailableTimes } from "@entities/unavailable-time/api";
-import { AddUnavailableTimeDialog } from "@features/availability-management";
-import type { UnavailableTime } from "@shared/types";
+import { getAllLessons } from "@entities/lesson/api";
+import { getAllUnavailableTimes } from "@entities/unavailable-time/api";
+import { EventDialog } from "@features/availability-management";
+import type { Lesson, UnavailableTime } from "@shared/types";
 import { Card, CardContent } from "@shared/ui";
 import { CalendarView } from "@widgets/calendar-view";
 import { useEffect, useState } from "react";
 
 export const CalendarPage = () => {
   // TODO: 실제 로그인된 사용자 ID 가져오기
-  const userId = "temp-user-id";
+  const userId = "temp-cana-id";
   const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>(
     []
   );
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadUnavailableTimes = async () => {
+  // 불가 시간 & 수업 로드 (모든 사용자의 이벤트)
+  const loadEvents = async () => {
     try {
       setIsLoading(true);
-      const times = await getUserUnavailableTimes(userId);
+      const [times, lessonList] = await Promise.all([
+        getAllUnavailableTimes(),
+        getAllLessons(),
+      ]);
       setUnavailableTimes(times);
+      setLessons(lessonList);
     } catch (error) {
-      console.error("Failed to load unavailable times:", error);
+      console.error("Failed to load events:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadUnavailableTimes();
+    loadEvents();
   }, []);
 
   return (
@@ -39,10 +46,7 @@ export const CalendarPage = () => {
               Management for online class schedule
             </p>
           </div>
-          <AddUnavailableTimeDialog
-            userId={userId}
-            onSuccess={loadUnavailableTimes}
-          />
+          <EventDialog userId={userId} onSuccess={loadEvents} />
         </div>
 
         {isLoading ? (
@@ -54,7 +58,12 @@ export const CalendarPage = () => {
         ) : (
           <Card>
             <CardContent className="p-6">
-              <CalendarView unavailableTimes={unavailableTimes} />
+              <CalendarView
+                unavailableTimes={unavailableTimes}
+                lessons={lessons}
+                userId={userId}
+                onEventUpdate={loadEvents}
+              />
             </CardContent>
           </Card>
         )}
