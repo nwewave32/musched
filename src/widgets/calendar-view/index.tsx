@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { CalendarHeader } from "./CalendarHeader";
-import { CalendarGrid } from "./CalendarGrid";
+import { CalendarHeader } from "./ui/CalendarHeader";
+import { CalendarGrid } from "./ui/CalendarGrid";
+import type { UnavailableTime } from "@shared/types";
 
-export const CalendarView = () => {
+interface CalendarViewProps {
+  unavailableTimes?: UnavailableTime[];
+}
+
+export const CalendarView = ({ unavailableTimes = [] }: CalendarViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>();
 
@@ -22,6 +27,7 @@ export const CalendarView = () => {
         currentDate={currentDate}
         selectedDate={selectedDate}
         onDateClick={handleDateClick}
+        unavailableTimes={unavailableTimes}
       />
     </div>
   );

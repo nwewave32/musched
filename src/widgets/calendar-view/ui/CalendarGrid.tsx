@@ -1,23 +1,27 @@
-import { cn } from "@shared/lib";
 import {
+  cn,
+  formatDate,
   getCalendarDays,
+  getUnavailableTimesForDate,
   isDateInMonth,
   isSameDayCheck,
   isTodayCheck,
-  formatDate,
-  WEEKDAY_NAMES,
+  WEEKDAY_NAMES_EN,
 } from "@shared/lib";
+import type { UnavailableTime } from "@shared/types";
 
 interface CalendarGridProps {
   currentDate: Date;
   selectedDate?: Date;
   onDateClick?: (date: Date) => void;
+  unavailableTimes?: UnavailableTime[];
 }
 
 export const CalendarGrid = ({
   currentDate,
   selectedDate,
   onDateClick,
+  unavailableTimes = [],
 }: CalendarGridProps) => {
   const calendarDays = getCalendarDays(currentDate);
 
@@ -25,7 +29,7 @@ export const CalendarGrid = ({
     <div className="w-full">
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 gap-px mb-2">
-        {WEEKDAY_NAMES.map((day, index) => (
+        {WEEKDAY_NAMES_EN.map((day, index) => (
           <div
             key={day}
             className={cn(
@@ -56,7 +60,7 @@ export const CalendarGrid = ({
                 "relative min-h-[80px] bg-white p-2 text-left transition-colors",
                 "hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500",
                 !isCurrentMonth && "bg-gray-50 text-gray-400",
-                isSelected && "bg-blue-50 ring-2 ring-inset ring-blue-500",
+                isSelected && "bg-blue-50 ring-2 ring-inset ring-blue-500"
               )}
             >
               {/* 날짜 숫자 */}
@@ -72,9 +76,45 @@ export const CalendarGrid = ({
                 {formatDate(day, "d")}
               </span>
 
-              {/* 이벤트 표시 영역 (나중에 추가) */}
+              {/* 불가 시간 표시 */}
               <div className="mt-1 space-y-1">
-                {/* 여기에 수업, 불가 시간 등을 표시 */}
+                {getUnavailableTimesForDate(day, unavailableTimes).map(
+                  (unavailableTime) => (
+                    <div
+                      key={unavailableTime.id}
+                      className="text-xs p-1 rounded bg-gray-200 text-gray-700 truncate"
+                      title={
+                        unavailableTime.isAllDay
+                          ? "Unavailable for all day"
+                          : `${unavailableTime.startTime
+                              .toDate()
+                              .toLocaleTimeString("ko-KR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })} - ${unavailableTime.endTime
+                              .toDate()
+                              .toLocaleTimeString("ko-KR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}`
+                      }
+                    >
+                      {unavailableTime.isAllDay
+                        ? "Unavailable for all day"
+                        : `${unavailableTime.startTime
+                            .toDate()
+                            .toLocaleTimeString("ko-KR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })} - ${unavailableTime.endTime
+                            .toDate()
+                            .toLocaleTimeString("ko-KR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}`}
+                    </div>
+                  )
+                )}
               </div>
             </button>
           );

@@ -1,5 +1,5 @@
-import { Button } from "@shared/ui";
 import { formatDate, getNextMonth, getPreviousMonth } from "@shared/lib";
+import { Button } from "@shared/ui";
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -26,10 +26,10 @@ export const CalendarHeader = ({
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-900">
-          {formatDate(currentDate, "yyyy년 M월")}
+          {formatDate(currentDate, "yyyy. MM.")}
         </h2>
         <Button variant="outline" size="sm" onClick={handleToday}>
-          오늘
+          Today
         </Button>
       </div>
 
@@ -38,7 +38,7 @@ export const CalendarHeader = ({
           variant="outline"
           size="sm"
           onClick={handlePreviousMonth}
-          aria-label="이전 달"
+          aria-label="previous month"
         >
           <svg
             className="w-5 h-5"
@@ -58,7 +58,7 @@ export const CalendarHeader = ({
           variant="outline"
           size="sm"
           onClick={handleNextMonth}
-          aria-label="다음 달"
+          aria-label="next month"
         >
           <svg
             className="w-5 h-5"
