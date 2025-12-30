@@ -56,11 +56,15 @@ const EventCard = ({
     fetchCreator();
   }, [event]);
 
-  // 삭제 권한 체크
+  // 삭제 및 수정 권한 체크
   const canDelete = () => {
     if (event.type === "unavailable") {
       return event.data.userId === userId;
     } else {
+      // 확정된 수업은 수정 및 삭제 불가
+      if (event.data.status === "confirmed") {
+        return false;
+      }
       return event.data.proposedBy === userId;
     }
   };
@@ -124,13 +128,16 @@ const EventCard = ({
     }
   };
 
+  // 확정된 수업이 날짜가 지났으면 완료로 표시
+  const isCompleted = event.type === "lesson" && event.data.status === "confirmed" && event.data.endTime.toDate() < new Date();
+
   return (
     <Card className="border-gray-200">
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
             <h4 className="font-semibold">
-              {event.type === "unavailable" ? "Unavailable Time" : "Lesson"}
+              {event.type === "unavailable" ? "Unavailable Time" : isCompleted ? "✅ Lesson" : "Lesson"}
             </h4>
             {event.type === "lesson" && (
               <span
@@ -142,7 +149,7 @@ const EventCard = ({
                     : "bg-red-100 text-red-800"
                 }`}
               >
-                {event.data.status}
+                {isCompleted ? "completed" : event.data.status}
               </span>
             )}
           </div>

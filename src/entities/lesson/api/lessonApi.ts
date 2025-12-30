@@ -7,6 +7,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@shared/config/firebase";
@@ -37,6 +38,20 @@ export const updateLesson = async (
   data: Partial<Omit<Lesson, "id" | "createdAt" | "updatedAt">>
 ): Promise<void> => {
   const docRef = doc(db, COLLECTION_NAME, id);
+
+  // 현재 수업 상태 확인
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) {
+    throw new Error("Lesson not found");
+  }
+
+  const lesson = docSnap.data() as Lesson;
+
+  // 확정된 수업은 수정 불가
+  if (lesson.status === "confirmed") {
+    throw new Error("Cannot update a confirmed lesson");
+  }
+
   await updateDoc(docRef, {
     ...data,
     updatedAt: Timestamp.now(),
@@ -48,6 +63,20 @@ export const updateLesson = async (
  */
 export const deleteLesson = async (id: string): Promise<void> => {
   const docRef = doc(db, COLLECTION_NAME, id);
+
+  // 현재 수업 상태 확인
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) {
+    throw new Error("Lesson not found");
+  }
+
+  const lesson = docSnap.data() as Lesson;
+
+  // 확정된 수업은 삭제 불가
+  if (lesson.status === "confirmed") {
+    throw new Error("Cannot delete a confirmed lesson");
+  }
+
   await deleteDoc(docRef);
 };
 

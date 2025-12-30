@@ -127,6 +127,9 @@ export const CalendarGrid = ({
 
                   const lessonTimeRange = `${formatTimeInTimezone(lesson.startTime, userTimezone)} - ${formatTimeInTimezone(lesson.endTime, userTimezone)}`;
 
+                  // 확정된 수업이 날짜가 지났으면 완료로 표시
+                  const isCompleted = lesson.status === "confirmed" && lesson.endTime.toDate() < new Date();
+
                   return (
                     <div
                       key={lesson.id}
@@ -134,9 +137,9 @@ export const CalendarGrid = ({
                         "w-full text-xs p-1 rounded border-2 truncate text-left",
                         statusStyles[lesson.status]
                       )}
-                      title={`Lesson: ${lessonTimeRange} (${lesson.status})`}
+                      title={`${isCompleted ? "✅ " : ""}Lesson: ${lessonTimeRange} (${lesson.status})`}
                     >
-                      Lesson: {formatTimeInTimezone(lesson.startTime, userTimezone)}
+                      {isCompleted ? "✅ " : ""}Lesson: {formatTimeInTimezone(lesson.startTime, userTimezone)}
                     </div>
                   );
                 })}
