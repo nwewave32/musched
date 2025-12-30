@@ -1,8 +1,19 @@
-import { deleteLesson, updateLesson } from "@entities/lesson/api";
+import { deleteLesson, updateLesson, cancelLesson } from "@entities/lesson/api";
 import { deleteUnavailableTime } from "@entities/unavailable-time/api";
 import { getUserProfile } from "@entities/user/api";
 import type { Lesson, UnavailableTime, User } from "@shared/types";
 import { Button, Card } from "@shared/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@shared/ui/dialog";
+import { Input } from "@shared/ui/input";
+import { Label } from "@shared/ui/label";
 import { useState, useEffect } from "react";
 import {
   isSameDayCheck,
@@ -40,6 +51,8 @@ const EventCard = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [creatorUser, setCreatorUser] = useState<User | null>(null);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
 
   // 불가 시간 생성자 정보 가져오기
   useEffect(() => {
@@ -128,6 +141,29 @@ const EventCard = ({
     }
   };
 
+  // 수업 취소 핸들러
+  const handleCancelLesson = async () => {
+    if (event.type !== "lesson") return;
+
+    if (!cancellationReason.trim()) {
+      alert("Please enter a cancellation reason");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await cancelLesson(event.data.id, cancellationReason);
+      setIsCancelDialogOpen(false);
+      setCancellationReason("");
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to cancel lesson:", error);
+      alert("Failed to cancel lesson");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // 확정된 수업이 날짜가 지났으면 완료로 표시
   const isCompleted = event.type === "lesson" && event.data.status === "confirmed" && event.data.endTime.toDate() < new Date();
 
@@ -146,6 +182,8 @@ const EventCard = ({
                     ? "bg-yellow-100 text-yellow-800"
                     : event.data.status === "confirmed"
                     ? "bg-green-100 text-green-800"
+                    : event.data.status === "cancelled"
+                    ? "bg-gray-100 text-gray-800"
                     : "bg-red-100 text-red-800"
                 }`}
               >
@@ -165,6 +203,14 @@ const EventCard = ({
                 : `${formatTimeInTimezone(event.data.startTime, user?.timezone)} - ${formatTimeInTimezone(event.data.endTime, user?.timezone)}`}
             </span>
           </div>
+
+          {/* 취소 사유 (수업이 취소된 경우) */}
+          {event.type === "lesson" && event.data.status === "cancelled" && event.data.cancellationReason && (
+            <div>
+              <span className="font-medium text-gray-500">Cancellation Reason: </span>
+              <span className="text-gray-700">{event.data.cancellationReason}</span>
+            </div>
+          )}
 
           {/* 반복 (불가 시간만) */}
           {event.type === "unavailable" && (
@@ -224,6 +270,61 @@ const EventCard = ({
                 </Button>
               </>
             )}
+
+          {event.type === "lesson" &&
+           event.data.status === "confirmed" &&
+           !isCompleted && (
+            <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  Cancel Lesson
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Cancel Lesson</DialogTitle>
+                  <DialogDescription>
+                    Please provide a reason for cancelling this lesson.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cancellation-reason">Cancellation Reason</Label>
+                    <Input
+                      id="cancellation-reason"
+                      placeholder="Enter reason for cancellation..."
+                      value={cancellationReason}
+                      onChange={(e) => setCancellationReason(e.target.value)}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsCancelDialogOpen(false);
+                      setCancellationReason("");
+                    }}
+                    disabled={isProcessing}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCancelLesson}
+                    disabled={isProcessing}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {isProcessing ? "Cancelling..." : "Confirm Cancellation"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
           {canDelete() && (
             <>

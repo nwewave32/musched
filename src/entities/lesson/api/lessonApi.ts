@@ -152,3 +152,32 @@ export const getAllLessons = async (): Promise<Lesson[]> => {
     ...doc.data(),
   })) as Lesson[];
 };
+
+/**
+ * 수업 취소
+ */
+export const cancelLesson = async (
+  id: string,
+  cancellationReason: string
+): Promise<void> => {
+  const docRef = doc(db, COLLECTION_NAME, id);
+
+  // 현재 수업 상태 확인
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) {
+    throw new Error("Lesson not found");
+  }
+
+  const lesson = docSnap.data() as Lesson;
+
+  // confirmed 상태인 수업만 취소 가능
+  if (lesson.status !== "confirmed") {
+    throw new Error("Only confirmed lessons can be cancelled");
+  }
+
+  await updateDoc(docRef, {
+    status: "cancelled",
+    cancellationReason,
+    updatedAt: Timestamp.now(),
+  });
+};

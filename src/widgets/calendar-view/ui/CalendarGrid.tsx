@@ -38,7 +38,7 @@ export const CalendarGrid = ({
   };
 
   // 겹치는 unavailable times를 합치는 함수
-  const mergeUnavailableTimes = (date: Date, times: UnavailableTime[]) => {
+  const mergeUnavailableTimes = (times: UnavailableTime[]) => {
     if (times.length === 0) return [];
 
     // All Day와 일반 시간을 분리
@@ -188,7 +188,7 @@ export const CalendarGrid = ({
                 })}
 
                 {/* 불가 시간 표시 (합쳐진 시간 블럭) */}
-                {mergeUnavailableTimes(day, getUnavailableTimesForDate(day, unavailableTimes)).map(
+                {mergeUnavailableTimes(getUnavailableTimesForDate(day, unavailableTimes)).map(
                   (mergedTime, index) => {
                     const timeRange = mergedTime.isAllDay
                       ? "All Day"
