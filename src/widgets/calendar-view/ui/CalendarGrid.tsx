@@ -10,6 +10,7 @@ import {
   formatTimeInTimezone,
 } from "@shared/lib";
 import type { UnavailableTime, Lesson } from "@shared/types";
+import { Timestamp } from "firebase/firestore";
 
 interface CalendarGridProps {
   currentDate: Date;
@@ -35,6 +36,67 @@ export const CalendarGrid = ({
       isSameDayCheck(lesson.startTime.toDate(), date)
     );
   };
+
+  // 겹치는 unavailable times를 합치는 함수
+  const mergeUnavailableTimes = (date: Date, times: UnavailableTime[]) => {
+    if (times.length === 0) return [];
+
+    // All Day와 일반 시간을 분리
+    const allDayTimes = times.filter(t => t.isAllDay);
+    const regularTimes = times.filter(t => !t.isAllDay);
+
+    const merged: Array<{ startTime: Date; endTime: Date; isAllDay: boolean }> = [];
+
+    // All Day는 하나로 표시
+    if (allDayTimes.length > 0) {
+      merged.push({
+        startTime: allDayTimes[0].startTime.toDate(),
+        endTime: allDayTimes[0].endTime.toDate(),
+        isAllDay: true,
+      });
+    }
+
+    if (regularTimes.length === 0) return merged;
+
+    // 일반 시간들을 시작 시간 기준으로 정렬
+    const sorted = [...regularTimes].sort(
+      (a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime()
+    );
+
+    let current = {
+      startTime: sorted[0].startTime.toDate(),
+      endTime: sorted[0].endTime.toDate(),
+      isAllDay: false,
+    };
+
+    for (let i = 1; i < sorted.length; i++) {
+      const next = sorted[i];
+      const nextStart = next.startTime.toDate();
+      const nextEnd = next.endTime.toDate();
+
+      // 현재 구간과 겹치거나 연속되는지 확인
+      if (nextStart <= current.endTime) {
+        // 겹치면 end를 더 늦은 시간으로 업데이트
+        if (nextEnd > current.endTime) {
+          current.endTime = nextEnd;
+        }
+      } else {
+        // 겹치지 않으면 현재 구간을 저장하고 새 구간 시작
+        merged.push({ ...current });
+        current = {
+          startTime: nextStart,
+          endTime: nextEnd,
+          isAllDay: false,
+        };
+      }
+    }
+
+    // 마지막 구간 추가
+    merged.push(current);
+
+    return merged;
+  };
+
   const calendarDays = getCalendarDays(currentDate);
 
   return (
@@ -96,27 +158,8 @@ export const CalendarGrid = ({
                 {formatDate(day, "d")}
               </span>
 
-              {/* 불가 시간 표시 */}
+              {/* 수업 표시 */}
               <div className="mt-1 space-y-1">
-                {getUnavailableTimesForDate(day, unavailableTimes).map(
-                  (unavailableTime) => {
-                    const timeRange = unavailableTime.isAllDay
-                      ? "All Day"
-                      : `${formatTimeInTimezone(unavailableTime.startTime, userTimezone)} - ${formatTimeInTimezone(unavailableTime.endTime, userTimezone)}`;
-
-                    return (
-                      <div
-                        key={unavailableTime.id}
-                        className="w-full text-xs p-1 rounded bg-gray-200 text-gray-700 truncate text-left"
-                        title={timeRange}
-                      >
-                        {timeRange}
-                      </div>
-                    );
-                  }
-                )}
-
-                {/* 수업 표시 */}
                 {getLessonsForDate(day).map((lesson) => {
                   const statusStyles = {
                     pending: "bg-yellow-50 border-yellow-400 text-yellow-800",
@@ -143,6 +186,25 @@ export const CalendarGrid = ({
                     </div>
                   );
                 })}
+
+                {/* 불가 시간 표시 (합쳐진 시간 블럭) */}
+                {mergeUnavailableTimes(day, getUnavailableTimesForDate(day, unavailableTimes)).map(
+                  (mergedTime, index) => {
+                    const timeRange = mergedTime.isAllDay
+                      ? "All Day"
+                      : `${formatTimeInTimezone(Timestamp.fromDate(mergedTime.startTime), userTimezone)} - ${formatTimeInTimezone(Timestamp.fromDate(mergedTime.endTime), userTimezone)}`;
+
+                    return (
+                      <div
+                        key={`merged-${index}`}
+                        className="w-full text-xs p-1 rounded bg-gray-200 text-gray-700 truncate text-left"
+                        title={timeRange}
+                      >
+                        {timeRange}
+                      </div>
+                    );
+                  }
+                )}
               </div>
             </div>
           );

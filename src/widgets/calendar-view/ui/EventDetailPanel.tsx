@@ -318,22 +318,22 @@ export const EventDetailPanel = ({
         </Card>
       ) : (
         <div className="space-y-3">
-          {/* 불가 시간 카드들 */}
-          {dateUnavailableTimes.map((unavailableTime) => (
+          {/* 수업 카드들 */}
+          {dateLessons.map((lesson) => (
             <EventCard
-              key={`unavailable-${unavailableTime.id}`}
-              event={{ type: "unavailable", data: unavailableTime }}
+              key={`lesson-${lesson.id}`}
+              event={{ type: "lesson", data: lesson }}
               userId={userId}
               onUpdate={onUpdate}
               user={user}
             />
           ))}
 
-          {/* 수업 카드들 */}
-          {dateLessons.map((lesson) => (
+          {/* 불가 시간 카드들 */}
+          {dateUnavailableTimes.map((unavailableTime) => (
             <EventCard
-              key={`lesson-${lesson.id}`}
-              event={{ type: "lesson", data: lesson }}
+              key={`unavailable-${unavailableTime.id}`}
+              event={{ type: "unavailable", data: unavailableTime }}
               userId={userId}
               onUpdate={onUpdate}
               user={user}
