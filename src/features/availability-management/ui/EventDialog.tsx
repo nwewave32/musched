@@ -3,11 +3,13 @@ import {
   createUnavailableTime,
   updateUnavailableTime,
 } from "@entities/unavailable-time/api";
+import { getUserProfile } from "@entities/user/api";
 import type {
   Lesson,
   LessonStatus,
   RecurrenceType,
   UnavailableTime,
+  User,
 } from "@shared/types";
 import {
   Button,
@@ -22,6 +24,7 @@ import {
   Input,
   Label,
 } from "@shared/ui";
+import { createDateInTimezone, timestampToZonedDate } from "@shared/lib/date";
 import { Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
@@ -46,6 +49,9 @@ export const EventDialog = ({
   const [open, setOpen] = useState(false);
   const isEditMode = !!editEvent;
 
+  // User info
+  const [user, setUser] = useState<User | null>(null);
+
   // Event type selection
   const [isLesson, setIsLesson] = useState(false);
 
@@ -63,17 +69,45 @@ export const EventDialog = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userProfile = await getUserProfile(userId);
+      setUser(userProfile);
+    };
+    fetchUser();
+  }, [userId]);
+
   // 수정 모드일 때 초기값 설정
   useEffect(() => {
-    if (editEvent) {
+    if (editEvent && user) {
       const eventData = editEvent.data;
-      const startDateTime = eventData.startTime.toDate();
-      const endDateTime = eventData.endTime.toDate();
+
+      // 사용자의 타임존으로 변환된 날짜/시간 가져오기
+      const startDateTime = timestampToZonedDate(
+        eventData.startTime,
+        user.timezone
+      );
+      const endDateTime = timestampToZonedDate(eventData.endTime, user.timezone);
 
       setIsLesson(editEvent.type === "lesson");
       setStartDate(startDateTime.toISOString().split("T")[0]);
-      setStartTime(startDateTime.toTimeString().slice(0, 5));
-      setEndTime(endDateTime.toTimeString().slice(0, 5));
+      setStartTime(
+        startDateTime.toTimeString().slice(0, 5) ||
+          startDateTime.toLocaleTimeString("en-US", {
+            hour12: false,
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+      );
+      setEndTime(
+        endDateTime.toTimeString().slice(0, 5) ||
+          endDateTime.toLocaleTimeString("en-US", {
+            hour12: false,
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+      );
 
       if (editEvent.type === "unavailable") {
         const unavailableData = editEvent.data as UnavailableTime;
@@ -82,15 +116,22 @@ export const EventDialog = ({
         setSelectedDays(unavailableData.recurrence.daysOfWeek || []);
       }
     }
-  }, [editEvent]);
+  }, [editEvent, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      alert("User information not loaded");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const start = new Date(`${startDate}T${startTime}`);
-      const end = new Date(`${startDate}T${endTime}`);
+      // 사용자의 타임존으로 입력된 시간을 UTC로 변환
+      const start = createDateInTimezone(startDate, startTime, user.timezone);
+      const end = createDateInTimezone(startDate, endTime, user.timezone);
 
       if (isLesson) {
         if (isEditMode && editEvent?.type === "lesson") {
@@ -130,7 +171,7 @@ export const EventDialog = ({
             endTime: Timestamp.fromDate(end),
             isAllDay,
             recurrence,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timezone: user.timezone, // 사용자 프로필의 타임존 사용
           });
         }
       }

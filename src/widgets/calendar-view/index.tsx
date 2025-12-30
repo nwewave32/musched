@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CalendarHeader } from "./ui/CalendarHeader";
 import { CalendarGrid } from "./ui/CalendarGrid";
 import { EventDetailPanel } from "./ui/EventDetailPanel";
-import type { UnavailableTime, Lesson } from "@shared/types";
+import { getUserProfile } from "@entities/user/api";
+import type { UnavailableTime, Lesson, User } from "@shared/types";
 
 interface CalendarViewProps {
   unavailableTimes?: UnavailableTime[];
@@ -19,6 +20,16 @@ export const CalendarView = ({
 }: CalendarViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [user, setUser] = useState<User | null>(null);
+
+  // 현재 로그인한 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userProfile = await getUserProfile(userId);
+      setUser(userProfile);
+    };
+    fetchUser();
+  }, [userId]);
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
@@ -40,6 +51,7 @@ export const CalendarView = ({
         onDateClick={handleDateClick}
         unavailableTimes={unavailableTimes}
         lessons={lessons}
+        userTimezone={user?.timezone}
       />
       {selectedDate && (
         <EventDetailPanel
@@ -49,6 +61,7 @@ export const CalendarView = ({
           userId={userId}
           onClose={handleEventClose}
           onUpdate={onEventUpdate}
+          userTimezone={user?.timezone}
         />
       )}
     </div>

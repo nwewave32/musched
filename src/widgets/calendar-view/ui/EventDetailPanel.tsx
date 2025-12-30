@@ -3,7 +3,11 @@ import { deleteUnavailableTime } from "@entities/unavailable-time/api";
 import type { Lesson, UnavailableTime } from "@shared/types";
 import { Button, Card } from "@shared/ui";
 import { useState } from "react";
-import { isSameDayCheck, getUnavailableTimesForDate } from "@shared/lib";
+import {
+  isSameDayCheck,
+  getUnavailableTimesForDate,
+  formatTimeInTimezone,
+} from "@shared/lib";
 import { EventDialog } from "@features/availability-management";
 
 interface EventDetailPanelProps {
@@ -13,6 +17,7 @@ interface EventDetailPanelProps {
   userId: string;
   onClose: () => void;
   onUpdate?: () => void;
+  userTimezone?: string;
 }
 
 // 개별 이벤트 카드 컴포넌트
@@ -22,9 +27,15 @@ interface EventCardProps {
     | { type: "lesson"; data: Lesson };
   userId: string;
   onUpdate?: () => void;
+  userTimezone?: string;
 }
 
-const EventCard = ({ event, userId, onUpdate }: EventCardProps) => {
+const EventCard = ({
+  event,
+  userId,
+  onUpdate,
+  userTimezone,
+}: EventCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -127,23 +138,7 @@ const EventCard = ({ event, userId, onUpdate }: EventCardProps) => {
             <span>
               {event.type === "unavailable" && event.data.isAllDay
                 ? "All Day"
-                : `${(event.type === "unavailable"
-                    ? event.data.startTime
-                    : event.data.startTime
-                  )
-                    .toDate()
-                    .toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })} - ${(event.type === "unavailable"
-                    ? event.data.endTime
-                    : event.data.endTime
-                  )
-                    .toDate()
-                    .toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}`}
+                : `${formatTimeInTimezone(event.data.startTime, userTimezone)} - ${formatTimeInTimezone(event.data.endTime, userTimezone)}`}
             </span>
           </div>
 
@@ -233,6 +228,7 @@ export const EventDetailPanel = ({
   userId,
   onClose,
   onUpdate,
+  userTimezone,
 }: EventDetailPanelProps) => {
   // 선택된 날짜의 불가 시간 필터링
   const dateUnavailableTimes = getUnavailableTimesForDate(
@@ -296,6 +292,7 @@ export const EventDetailPanel = ({
               event={{ type: "unavailable", data: unavailableTime }}
               userId={userId}
               onUpdate={onUpdate}
+              userTimezone={userTimezone}
             />
           ))}
 
@@ -306,6 +303,7 @@ export const EventDetailPanel = ({
               event={{ type: "lesson", data: lesson }}
               userId={userId}
               onUpdate={onUpdate}
+              userTimezone={userTimezone}
             />
           ))}
         </div>

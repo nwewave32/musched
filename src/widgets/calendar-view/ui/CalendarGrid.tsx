@@ -7,6 +7,7 @@ import {
   isSameDayCheck,
   isTodayCheck,
   WEEKDAY_NAMES_EN,
+  formatTimeInTimezone,
 } from "@shared/lib";
 import type { UnavailableTime, Lesson } from "@shared/types";
 
@@ -16,6 +17,7 @@ interface CalendarGridProps {
   onDateClick?: (date: Date) => void;
   unavailableTimes?: UnavailableTime[];
   lessons?: Lesson[];
+  userTimezone?: string;
 }
 
 export const CalendarGrid = ({
@@ -24,7 +26,9 @@ export const CalendarGrid = ({
   onDateClick,
   unavailableTimes = [],
   lessons = [],
+  userTimezone,
 }: CalendarGridProps) => {
+
   // 특정 날짜의 수업 찾기
   const getLessonsForDate = (date: Date): Lesson[] => {
     return lessons.filter((lesson) =>
@@ -95,41 +99,21 @@ export const CalendarGrid = ({
               {/* 불가 시간 표시 */}
               <div className="mt-1 space-y-1">
                 {getUnavailableTimesForDate(day, unavailableTimes).map(
-                  (unavailableTime) => (
-                    <div
-                      key={unavailableTime.id}
-                      className="w-full text-xs p-1 rounded bg-gray-200 text-gray-700 truncate text-left"
-                      title={
-                        unavailableTime.isAllDay
-                          ? "All Day"
-                          : `${unavailableTime.startTime
-                              .toDate()
-                              .toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })} - ${unavailableTime.endTime
-                              .toDate()
-                              .toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}`
-                      }
-                    >
-                      {unavailableTime.isAllDay
-                        ? "All Day"
-                        : `${unavailableTime.startTime
-                            .toDate()
-                            .toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })} - ${unavailableTime.endTime
-                            .toDate()
-                            .toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}`}
-                    </div>
-                  )
+                  (unavailableTime) => {
+                    const timeRange = unavailableTime.isAllDay
+                      ? "All Day"
+                      : `${formatTimeInTimezone(unavailableTime.startTime, userTimezone)} - ${formatTimeInTimezone(unavailableTime.endTime, userTimezone)}`;
+
+                    return (
+                      <div
+                        key={unavailableTime.id}
+                        className="w-full text-xs p-1 rounded bg-gray-200 text-gray-700 truncate text-left"
+                        title={timeRange}
+                      >
+                        {timeRange}
+                      </div>
+                    );
+                  }
                 )}
 
                 {/* 수업 표시 */}
@@ -141,6 +125,8 @@ export const CalendarGrid = ({
                     rejected: "bg-gray-100 border-gray-400 text-gray-600 line-through",
                   };
 
+                  const lessonTimeRange = `${formatTimeInTimezone(lesson.startTime, userTimezone)} - ${formatTimeInTimezone(lesson.endTime, userTimezone)}`;
+
                   return (
                     <div
                       key={lesson.id}
@@ -148,24 +134,9 @@ export const CalendarGrid = ({
                         "w-full text-xs p-1 rounded border-2 truncate text-left",
                         statusStyles[lesson.status]
                       )}
-                      title={`Lesson: ${lesson.startTime
-                        .toDate()
-                        .toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })} - ${lesson.endTime
-                        .toDate()
-                        .toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })} (${lesson.status})`}
+                      title={`Lesson: ${lessonTimeRange} (${lesson.status})`}
                     >
-                      Lesson: {lesson.startTime
-                        .toDate()
-                        .toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      Lesson: {formatTimeInTimezone(lesson.startTime, userTimezone)}
                     </div>
                   );
                 })}
