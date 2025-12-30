@@ -61,7 +61,7 @@ export const CalendarView = ({
           userId={userId}
           onClose={handleEventClose}
           onUpdate={onEventUpdate}
-          userTimezone={user?.timezone}
+          user={user || undefined}
         />
       )}
     </div>

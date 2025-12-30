@@ -15,7 +15,7 @@ export interface User {
 }
 
 // Unavailable Time types
-export type RecurrenceType = 'none' | 'daily' | 'weekdays' | 'weekly';
+export type RecurrenceType = "none" | "daily" | "weekdays" | "weekly";
 
 export interface Recurrence {
   type: RecurrenceType;
@@ -29,12 +29,11 @@ export interface UnavailableTime {
   endTime: Timestamp;
   isAllDay: boolean;
   recurrence: Recurrence;
-  timezone: string;
   createdAt: Timestamp;
 }
 
 // Lesson types
-export type LessonStatus = 'pending' | 'confirmed' | 'cancelled' | 'rejected';
+export type LessonStatus = "pending" | "confirmed" | "cancelled" | "rejected";
 
 export interface Lesson {
   id: string;

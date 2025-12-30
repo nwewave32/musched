@@ -1,8 +1,9 @@
 import { deleteLesson, updateLesson } from "@entities/lesson/api";
 import { deleteUnavailableTime } from "@entities/unavailable-time/api";
-import type { Lesson, UnavailableTime } from "@shared/types";
+import { getUserProfile } from "@entities/user/api";
+import type { Lesson, UnavailableTime, User } from "@shared/types";
 import { Button, Card } from "@shared/ui";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   isSameDayCheck,
   getUnavailableTimesForDate,
@@ -17,7 +18,7 @@ interface EventDetailPanelProps {
   userId: string;
   onClose: () => void;
   onUpdate?: () => void;
-  userTimezone?: string;
+  user?: User;
 }
 
 // 개별 이벤트 카드 컴포넌트
@@ -27,17 +28,33 @@ interface EventCardProps {
     | { type: "lesson"; data: Lesson };
   userId: string;
   onUpdate?: () => void;
-  userTimezone?: string;
+  user?: User;
 }
 
 const EventCard = ({
   event,
   userId,
   onUpdate,
-  userTimezone,
+  user,
 }: EventCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [creatorUser, setCreatorUser] = useState<User | null>(null);
+
+  // 불가 시간 생성자 정보 가져오기
+  useEffect(() => {
+    const fetchCreator = async () => {
+      if (event.type === "unavailable") {
+        try {
+          const creator = await getUserProfile(event.data.userId);
+          setCreatorUser(creator);
+        } catch (error) {
+          console.error("Failed to fetch creator user:", error);
+        }
+      }
+    };
+    fetchCreator();
+  }, [event]);
 
   // 삭제 권한 체크
   const canDelete = () => {
@@ -138,31 +155,40 @@ const EventCard = ({
             <span>
               {event.type === "unavailable" && event.data.isAllDay
                 ? "All Day"
-                : `${formatTimeInTimezone(event.data.startTime, userTimezone)} - ${formatTimeInTimezone(event.data.endTime, userTimezone)}`}
+                : `${formatTimeInTimezone(event.data.startTime, user?.timezone)} - ${formatTimeInTimezone(event.data.endTime, user?.timezone)}`}
             </span>
           </div>
 
           {/* 반복 (불가 시간만) */}
           {event.type === "unavailable" && (
-            <div>
-              <span className="font-medium text-gray-500">Recurrence: </span>
-              <span>
-                {event.data.recurrence.type === "none"
-                  ? "No Repeat"
-                  : event.data.recurrence.type === "daily"
-                  ? "Daily"
-                  : event.data.recurrence.type === "weekdays"
-                  ? "Weekdays (Mon-Fri)"
-                  : `Weekly (${
-                      event.data.recurrence.daysOfWeek
-                        ?.map(
-                          (d: number) =>
-                            ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]
-                        )
-                        .join(", ") || ""
-                    })`}
-              </span>
-            </div>
+            <>
+              <div>
+                <span className="font-medium text-gray-500">Recurrence: </span>
+                <span>
+                  {event.data.recurrence.type === "none"
+                    ? "No Repeat"
+                    : event.data.recurrence.type === "daily"
+                    ? "Daily"
+                    : event.data.recurrence.type === "weekdays"
+                    ? "Weekdays (Mon-Fri)"
+                    : `Weekly (${
+                        event.data.recurrence.daysOfWeek
+                          ?.map(
+                            (d: number) =>
+                              ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]
+                          )
+                          .join(", ") || ""
+                      })`}
+                </span>
+              </div>
+              {/* 생성자 */}
+              <div>
+                <span className="font-medium text-gray-500">Created by: </span>
+                <span>
+                  {creatorUser ? (creatorUser.name || creatorUser.email) : event.data.userId}
+                </span>
+              </div>
+            </>
           )}
         </div>
 
@@ -228,7 +254,7 @@ export const EventDetailPanel = ({
   userId,
   onClose,
   onUpdate,
-  userTimezone,
+  user,
 }: EventDetailPanelProps) => {
   // 선택된 날짜의 불가 시간 필터링
   const dateUnavailableTimes = getUnavailableTimesForDate(
@@ -292,7 +318,7 @@ export const EventDetailPanel = ({
               event={{ type: "unavailable", data: unavailableTime }}
               userId={userId}
               onUpdate={onUpdate}
-              userTimezone={userTimezone}
+              user={user}
             />
           ))}
 
@@ -303,7 +329,7 @@ export const EventDetailPanel = ({
               event={{ type: "lesson", data: lesson }}
               userId={userId}
               onUpdate={onUpdate}
-              userTimezone={userTimezone}
+              user={user}
             />
           ))}
         </div>

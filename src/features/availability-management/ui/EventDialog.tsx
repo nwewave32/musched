@@ -171,7 +171,6 @@ export const EventDialog = ({
             endTime: Timestamp.fromDate(end),
             isAllDay,
             recurrence,
-            timezone: user.timezone, // 사용자 프로필의 타임존 사용
           });
         }
       }
