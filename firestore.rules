@@ -1,0 +1,150 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 헬퍼 함수들
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidTimestamp(value) {
+      return value is timestamp;
+    }
+
+    function isValidRole(role) {
+      return role in ['teacher', 'student'];
+    }
+
+    function isValidLessonStatus(status) {
+      return status in ['pending', 'confirmed', 'cancelled', 'rejected'];
+    }
+
+    // users 컬렉션 - 사용자 프로필
+    match /users/{userId} {
+      // 읽기: 본인 또는 파트너만 가능
+      allow read: if isOwner(userId) ||
+                     (isAuthenticated() &&
+                      resource.data.partnerId == request.auth.uid);
+
+      // 생성: 본인 계정만 생성 가능
+      allow create: if isOwner(userId) &&
+                       request.resource.data.keys().hasAll(['email', 'role', 'timezone', 'createdAt']) &&
+                       isValidRole(request.resource.data.role) &&
+                       isValidTimestamp(request.resource.data.createdAt) &&
+                       request.resource.data.id == userId;
+
+      // 수정: 본인만 가능, 생성일자 변경 불가
+      allow update: if isOwner(userId) &&
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt'])) &&
+                       (request.resource.data.role == null || isValidRole(request.resource.data.role));
+
+      // 삭제: 본인만 가능
+      allow delete: if isOwner(userId);
+    }
+
+    // lessons 컬렉션 - 수업 일정
+    match /lessons/{lessonId} {
+      // 읽기: 제안자 또는 확인자만 가능
+      allow read: if isAuthenticated() &&
+                     (resource.data.proposedBy == request.auth.uid ||
+                      resource.data.confirmedBy == request.auth.uid);
+
+      // 생성: 인증된 사용자, 필수 필드 및 유효성 검증
+      allow create: if isAuthenticated() &&
+                       request.resource.data.keys().hasAll(['proposedBy', 'startTime', 'endTime', 'status', 'createdAt', 'updatedAt']) &&
+                       request.resource.data.proposedBy == request.auth.uid &&
+                       isValidLessonStatus(request.resource.data.status) &&
+                       isValidTimestamp(request.resource.data.startTime) &&
+                       isValidTimestamp(request.resource.data.endTime) &&
+                       isValidTimestamp(request.resource.data.createdAt) &&
+                       isValidTimestamp(request.resource.data.updatedAt) &&
+                       request.resource.data.startTime < request.resource.data.endTime;
+
+      // 수정: 제안자 또는 확인자만 가능, confirmed 상태는 취소만 가능
+      allow update: if isAuthenticated() &&
+                       (resource.data.proposedBy == request.auth.uid ||
+                        resource.data.confirmedBy == request.auth.uid) &&
+                       // confirmed 상태는 취소(cancelled)로만 변경 가능
+                       (resource.data.status != 'confirmed' ||
+                        (request.resource.data.status == 'cancelled' &&
+                         request.resource.data.keys().hasAll(['cancellationReason']))) &&
+                       // 생성일자, ID 변경 불가
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt', 'proposedBy'])) &&
+                       // updatedAt 필수 업데이트
+                       request.resource.data.updatedAt is timestamp &&
+                       // status 유효성 검증
+                       (request.resource.data.status == null || isValidLessonStatus(request.resource.data.status));
+
+      // 삭제: confirmed 상태가 아닌 경우만 제안자가 삭제 가능
+      allow delete: if isAuthenticated() &&
+                       resource.data.proposedBy == request.auth.uid &&
+                       resource.data.status != 'confirmed';
+    }
+
+    // unavailableTimes 컬렉션 - 불가능한 시간
+    match /unavailableTimes/{timeId} {
+      // 읽기: 본인 또는 파트너의 불가능한 시간 조회 가능
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid ||
+                      exists(/databases/$(database)/documents/users/$(resource.data.userId)) &&
+                      get(/databases/$(database)/documents/users/$(resource.data.userId)).data.partnerId == request.auth.uid);
+
+      // 생성: 본인의 불가능한 시간만 생성 가능
+      allow create: if isAuthenticated() &&
+                       request.resource.data.keys().hasAll(['userId', 'startTime', 'endTime', 'isAllDay', 'recurrence', 'createdAt']) &&
+                       request.resource.data.userId == request.auth.uid &&
+                       isValidTimestamp(request.resource.data.startTime) &&
+                       isValidTimestamp(request.resource.data.endTime) &&
+                       isValidTimestamp(request.resource.data.createdAt) &&
+                       request.resource.data.startTime < request.resource.data.endTime &&
+                       request.resource.data.isAllDay is bool &&
+                       request.resource.data.recurrence.type in ['none', 'daily', 'weekdays', 'weekly'];
+
+      // 수정: 본인의 불가능한 시간만 수정 가능
+      allow update: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.userId == request.auth.uid &&
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt', 'userId']));
+
+      // 삭제: 본인의 불가능한 시간만 삭제 가능
+      allow delete: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid;
+    }
+
+    // messages 컬렉션 - 메시지 (선택적)
+    match /messages/{messageId} {
+      // 읽기: 발신자 또는 수신자만 가능
+      allow read: if isAuthenticated() &&
+                     (resource.data.senderId == request.auth.uid ||
+                      resource.data.receiverId == request.auth.uid);
+
+      // 생성: 발신자만 가능
+      allow create: if isAuthenticated() &&
+                       request.resource.data.keys().hasAll(['senderId', 'receiverId', 'content', 'isRead', 'createdAt']) &&
+                       request.resource.data.senderId == request.auth.uid &&
+                       isValidTimestamp(request.resource.data.createdAt) &&
+                       request.resource.data.isRead is bool;
+
+      // 수정: 수신자가 읽음 표시만 가능
+      allow update: if isAuthenticated() &&
+                       resource.data.receiverId == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']) &&
+                       request.resource.data.isRead == true;
+
+      // 삭제: 발신자 또는 수신자가 가능
+      allow delete: if isAuthenticated() &&
+                       (resource.data.senderId == request.auth.uid ||
+                        resource.data.receiverId == request.auth.uid);
+    }
+
+    // 기본적으로 모든 접근 거부
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

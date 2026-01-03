@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // 헬퍼 함수들
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isValidFileSize(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024;
+    }
+
+    // 사용자 프로필 사진
+    match /users/{userId}/profile/{filename} {
+      // 읽기: 인증된 사용자만 가능
+      allow read: if isAuthenticated();
+
+      // 쓰기: 본인만 가능, 이미지 파일만, 5MB 제한
+      allow write: if isOwner(userId) &&
+                      isValidImageType() &&
+                      isValidFileSize(5);
+
+      // 삭제: 본인만 가능
+      allow delete: if isOwner(userId);
+    }
+
+    // 사용자 첨부 파일 (향후 확장용)
+    match /users/{userId}/files/{filename} {
+      // 읽기: 본인만 가능
+      allow read: if isOwner(userId);
+
+      // 쓰기: 본인만 가능, 10MB 제한
+      allow write: if isOwner(userId) &&
+                      isValidFileSize(10);
+
+      // 삭제: 본인만 가능
+      allow delete: if isOwner(userId);
+    }
+
+    // 기본적으로 모든 접근 거부
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
