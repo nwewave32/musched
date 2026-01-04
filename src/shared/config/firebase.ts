@@ -22,10 +22,28 @@ export const db = getFirestore(app);
 
 // Messaging은 지원되는 경우에만 초기화
 let messaging: ReturnType<typeof getMessaging> | null = null;
-isSupported().then((supported) => {
-  if (supported) {
-    messaging = getMessaging(app);
-  }
-});
+
+console.log("🔥 [Firebase] Checking messaging support...");
+console.log("🔥 [Firebase] User Agent:", navigator.userAgent);
+console.log("🔥 [Firebase] Service Worker support:", "serviceWorker" in navigator);
+
+isSupported()
+  .then((supported) => {
+    console.log("🔥 [Firebase] Messaging supported:", supported);
+    if (supported) {
+      messaging = getMessaging(app);
+      console.log("✅ [Firebase] Messaging initialized successfully!");
+    } else {
+      console.error("❌ [Firebase] Messaging is NOT supported on this device/browser");
+      console.error("❌ [Firebase] Possible reasons:");
+      console.error("  - iOS version < 16.4");
+      console.error("  - Not running as PWA (must use home screen icon)");
+      console.error("  - Service Worker not supported");
+      console.error("  - Third-party cookies disabled");
+    }
+  })
+  .catch((error) => {
+    console.error("❌ [Firebase] Error checking messaging support:", error);
+  });
 
 export { messaging };

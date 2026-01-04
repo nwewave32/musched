@@ -68,7 +68,6 @@ export const SignupPage = () => {
       // 로그아웃 후 로그인 페이지로 이동
       await signOut();
       navigate("/login", {
-        replace: true,
         state: { message: "Account created successfully! Please log in." }
       });
     } catch (err) {
@@ -78,12 +77,19 @@ export const SignupPage = () => {
       let errorMessage = "Failed to create account. Please try again.";
 
       if (err instanceof FirebaseError) {
+        console.error("Firebase error code:", err.code);
+        console.error("Firebase error message:", err.message);
+
         if (err.code === "auth/email-already-in-use") {
           errorMessage = "This email is already in use.";
         } else if (err.code === "auth/invalid-email") {
           errorMessage = "Invalid email address.";
         } else if (err.code === "auth/weak-password") {
           errorMessage = "Password is too weak.";
+        } else if (err.code === "auth/unauthorized-domain") {
+          errorMessage = `Unauthorized domain. Error code: ${err.code}`;
+        } else {
+          errorMessage = `${err.message} (Code: ${err.code})`;
         }
       }
 
