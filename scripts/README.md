@@ -1,4 +1,16 @@
-# Firebase Custom Token Generator
+# Firebase Custom Token Generator (DEPRECATED)
+
+**⚠️ 이 방식은 더 이상 사용하지 않습니다**
+
+이제 앱에서 이메일/비밀번호 방식의 인증을 사용합니다.
+- 회원가입: `/signup`
+- 로그인: `/login`
+
+아래 내용은 참고용으로만 보관됩니다.
+
+---
+
+# 이전 방식: Firebase Custom Token Generator
 
 ## Setup
 

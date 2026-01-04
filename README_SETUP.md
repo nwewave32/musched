@@ -86,6 +86,16 @@ npm run build
 npm run preview
 ```
 
+### 5. 로그인
+
+개발 서버를 실행한 후:
+
+1. 브라우저에서 `/signup`로 이동하여 새 계정 생성
+2. 또는 `/login`으로 이동하여 기존 계정으로 로그인
+3. 로그인 후 자동으로 캘린더 페이지로 이동
+
+**참고**: Firebase Console에서 직접 테스트 계정을 생성한 경우, 해당 이메일과 비밀번호로 로그인 가능
+
 ## Path Aliases
 
 FSD 레이어별로 path alias가 설정되어 있습니다:
@@ -115,11 +125,39 @@ PWA는 자동으로 설정되어 있으며, 빌드 시 Service Worker와 Manifes
 
 ## Firebase 설정
 
-1. Firebase Console에서 프로젝트 생성
-2. Authentication 활성화 (Custom Token 방식)
-3. Firestore 데이터베이스 생성
-4. Cloud Messaging 설정
-5. 웹 앱 추가 후 설정값을 `.env`에 입력
+### 1. Firebase 프로젝트 생성
+1. [Firebase Console](https://console.firebase.google.com)에 접속
+2. 새 프로젝트 생성 또는 기존 프로젝트 선택
+
+### 2. Authentication 설정
+1. Firebase Console → **Authentication** 메뉴
+2. **Sign-in method** 탭 클릭
+3. **이메일/비밀번호** 방식 활성화
+   - "Email/Password" 항목 클릭
+   - "사용 설정" 토글 켜기
+   - 저장
+
+### 3. 테스트 계정 생성 (선택사항)
+1. Authentication → **Users** 탭
+2. **사용자 추가** 버튼 클릭
+3. 이메일과 비밀번호 입력
+4. 사용자 추가
+
+또는 앱의 회원가입 페이지(`/signup`)를 통해 계정 생성 가능
+
+### 4. Firestore 데이터베이스 생성
+1. Firebase Console → **Firestore Database**
+2. 데이터베이스 만들기
+3. 테스트 모드 또는 프로덕션 모드 선택
+
+### 5. Cloud Messaging 설정 (선택사항)
+푸시 알림이 필요한 경우 설정
+
+### 6. 웹 앱 설정
+1. 프로젝트 설정 → 일반 탭
+2. "앱 추가" → 웹 선택
+3. 앱 등록 후 설정값 복사
+4. `.env` 파일에 설정값 입력
 
 ## 다음 단계
 

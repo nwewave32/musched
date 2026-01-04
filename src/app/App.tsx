@@ -6,6 +6,7 @@ import "./styles/index.css";
 // Pages
 import { CalendarPage } from "@pages/calendar";
 import { LoginPage } from "@pages/login";
+import { SignupPage } from "@pages/signup";
 
 export const App = () => {
   return (
@@ -13,6 +14,7 @@ export const App = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
           <Route
             path="/"
             element={

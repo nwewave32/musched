@@ -35,8 +35,7 @@ service cloud.firestore {
       allow create: if isOwner(userId) &&
                        request.resource.data.keys().hasAll(['email', 'role', 'timezone', 'createdAt']) &&
                        isValidRole(request.resource.data.role) &&
-                       isValidTimestamp(request.resource.data.createdAt) &&
-                       request.resource.data.id == userId;
+                       isValidTimestamp(request.resource.data.createdAt);
 
       // 수정: 본인만 가능, 생성일자 변경 불가
       allow update: if isOwner(userId) &&
@@ -49,10 +48,8 @@ service cloud.firestore {
 
     // lessons 컬렉션 - 수업 일정
     match /lessons/{lessonId} {
-      // 읽기: 제안자 또는 확인자만 가능
-      allow read: if isAuthenticated() &&
-                     (resource.data.proposedBy == request.auth.uid ||
-                      resource.data.confirmedBy == request.auth.uid);
+      // 읽기: 인증된 모든 사용자 가능 (스케줄 조율을 위해)
+      allow read: if isAuthenticated();
 
       // 생성: 인증된 사용자, 필수 필드 및 유효성 검증
       allow create: if isAuthenticated() &&
@@ -88,11 +85,8 @@ service cloud.firestore {
 
     // unavailableTimes 컬렉션 - 불가능한 시간
     match /unavailableTimes/{timeId} {
-      // 읽기: 본인 또는 파트너의 불가능한 시간 조회 가능
-      allow read: if isAuthenticated() &&
-                     (resource.data.userId == request.auth.uid ||
-                      exists(/databases/$(database)/documents/users/$(resource.data.userId)) &&
-                      get(/databases/$(database)/documents/users/$(resource.data.userId)).data.partnerId == request.auth.uid);
+      // 읽기: 인증된 모든 사용자 가능 (스케줄 조율을 위해)
+      allow read: if isAuthenticated();
 
       // 생성: 본인의 불가능한 시간만 생성 가능
       allow create: if isAuthenticated() &&
