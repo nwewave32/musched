@@ -7,6 +7,7 @@ import "./styles/index.css";
 import { CalendarPage } from "@pages/calendar";
 import { LoginPage } from "@pages/login";
 import { SignupPage } from "@pages/signup";
+import { SettingsPage } from "@pages/settings";
 
 export const App = () => {
   return (
@@ -20,6 +21,14 @@ export const App = () => {
             element={
               <ProtectedRoute>
                 <CalendarPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

@@ -5,6 +5,10 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    host: true, // 네트워크에 노출
+    port: 5173,
+  },
   plugins: [
     react({
       babel: {
@@ -36,6 +40,12 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        additionalManifestEntries: [
+          {
+            url: '/firebase-messaging-sw.js',
+            revision: null
+          }
+        ]
       },
     }),
   ],

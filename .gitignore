@@ -29,3 +29,6 @@ dist-ssr
 # Firebase Service Account Key (보안 주의!)
 scripts/serviceAccountKey.json
 **/serviceAccountKey.json
+.firebase
+.firebase/*
+*.cache
