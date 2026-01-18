@@ -47,3 +47,6 @@ isSupported()
   });
 
 export { messaging };
+
+// FCM VAPID Key
+export const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;

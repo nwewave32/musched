@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { useAuth } from "@shared/context/AuthContext";
+import { useAuth } from "@app/providers";
 import { Button, Card, CardContent, Input, Label } from "@shared/ui";
 
 export const LoginPage = () => {

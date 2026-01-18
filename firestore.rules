@@ -62,10 +62,8 @@ service cloud.firestore {
                        isValidTimestamp(request.resource.data.updatedAt) &&
                        request.resource.data.startTime < request.resource.data.endTime;
 
-      // 수정: 제안자 또는 확인자만 가능, confirmed 상태는 취소만 가능
+      // 수정: 인증된 사용자라면 누구나 가능 (확정은 제안자가 아닌 사람이 함)
       allow update: if isAuthenticated() &&
-                       (resource.data.proposedBy == request.auth.uid ||
-                        resource.data.confirmedBy == request.auth.uid) &&
                        // confirmed 상태는 취소(cancelled)로만 변경 가능
                        (resource.data.status != 'confirmed' ||
                         (request.resource.data.status == 'cancelled' &&

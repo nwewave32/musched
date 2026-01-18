@@ -39,18 +39,25 @@ self.addEventListener('notificationclick', (event) => {
 
   event.notification.close();
 
+  const notificationData = event.notification.data;
+
   // 클릭 시 앱 열기 (캘린더 페이지로 이동)
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 이미 열려있는 창이 있으면 포커스
+      // 이미 열려있는 창이 있으면 포커스하고 메시지 전송
       for (const client of clientList) {
         if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          // 클라이언트에게 데이터 새로고침 요청
+          client.postMessage({
+            type: 'NOTIFICATION_CLICKED',
+            data: notificationData
+          });
           return client.focus();
         }
       }
-      // 없으면 새 창 열기
+      // 없으면 새 창 열기 (URL 파라미터로 새로고침 트리거)
       if (clients.openWindow) {
-        return clients.openWindow('/');
+        return clients.openWindow('/?refresh=true');
       }
     })
   );

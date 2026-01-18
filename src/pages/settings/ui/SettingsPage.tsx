@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@shared/context/AuthContext";
+import { useAuth } from "@app/providers";
 import {
   requestNotificationPermission,
   deleteFCMToken,
-} from "@shared/lib/fcm";
+} from "@features/notification";
 import {
   Card,
   CardHeader,
