@@ -152,7 +152,7 @@ const EventCard = ({
 
     setIsProcessing(true);
     try {
-      await cancelLesson(event.data.id, cancellationReason);
+      await cancelLesson(event.data.id, cancellationReason, userId);
       setIsCancelDialogOpen(false);
       setCancellationReason("");
       onUpdate?.();
