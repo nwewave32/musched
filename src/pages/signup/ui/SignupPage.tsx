@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@shared/context/AuthContext";
+import { useAuth } from "@app/providers";
 import { Button, Card, CardContent, Input, Label } from "@shared/ui";
 import { FirebaseError } from "firebase/app";
 

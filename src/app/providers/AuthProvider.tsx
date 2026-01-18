@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { auth } from "@shared/config/firebase";
 import {
   signInWithCustomToken,
@@ -10,6 +10,10 @@ import {
 } from "firebase/auth";
 import type { User } from "@shared/types";
 import { getUserProfile, createUserProfile } from "@entities/user/api";
+import {
+  refreshFCMTokenIfNeeded,
+  setupTokenRefreshOnVisibility,
+} from "@features/notification";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -46,12 +50,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const visibilityCleanupRef = useRef<(() => void) | null>(null);
 
   // Firebase 인증 상태 변경 리스너
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log("🔐 Auth state changed:", user?.uid);
       setFirebaseUser(user);
+
+      // 기존 visibility 리스너 정리
+      if (visibilityCleanupRef.current) {
+        visibilityCleanupRef.current();
+        visibilityCleanupRef.current = null;
+      }
 
       if (user) {
         // Firestore에서 사용자 프로필 가져오기
@@ -73,6 +84,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
           console.log("✅ User profile loaded:", userProfile);
           setCurrentUser(userProfile);
+
+          // FCM 토큰 갱신 확인 (알림 권한이 있는 경우에만)
+          refreshFCMTokenIfNeeded(user.uid);
+
+          // Visibility 변경 시 토큰 갱신 리스너 설정
+          visibilityCleanupRef.current = setupTokenRefreshOnVisibility(user.uid);
         } catch (error) {
           console.error("❌ Failed to fetch user profile:", error);
           setCurrentUser(null);
@@ -84,7 +101,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      // cleanup visibility listener on unmount
+      if (visibilityCleanupRef.current) {
+        visibilityCleanupRef.current();
+      }
+    };
   }, []);
 
   // 커스텀 토큰으로 로그인

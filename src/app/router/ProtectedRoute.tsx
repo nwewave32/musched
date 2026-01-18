@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@shared/context/AuthContext";
+import { useAuth } from "@app/providers";
 import { Card, CardContent } from "@shared/ui";
 
 interface ProtectedRouteProps {

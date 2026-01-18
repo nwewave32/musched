@@ -3,6 +3,11 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
+/**
+ * Lesson 인터페이스
+ * 참고: src/shared/types/index.ts의 Lesson 타입과 동기화 필요
+ * (Firebase Functions는 별도 Node.js 환경이라 클라이언트 타입 직접 import 불가)
+ */
 interface Lesson {
   proposedBy: string;
   confirmedBy?: string;
@@ -65,13 +70,17 @@ export const onLessonChange = functions.firestore
       before.status === "confirmed" &&
       after.status === "cancelled"
     ) {
-      // 취소하지 않은 사람에게 알림 (confirmedBy 또는 proposedBy)
-      const recipientId = after.confirmedBy || after.proposedBy;
+      // proposedBy의 상대방에게 알림 (partnerId 조회)
+      const recipientId = await getPartnerId(after.proposedBy);
+      if (!recipientId) {
+        console.log(`No partner found for user ${after.proposedBy}`);
+        return null;
+      }
 
       return sendNotification({
         type: "lesson_cancelled",
         lesson: after,
-        recipientId: recipientId!,
+        recipientId,
         lessonId: context.params.lessonId,
       });
     }
@@ -125,22 +134,24 @@ async function sendNotification(params: {
       return null;
     }
 
-    const fcmToken = recipientDoc.data()?.fcmToken;
+    const recipientData = recipientDoc.data();
+    const fcmToken = recipientData?.fcmToken;
+    const recipientTimezone = recipientData?.timezone || "Asia/Seoul";
 
     if (!fcmToken) {
       console.log(`No FCM token for user ${recipientId}`);
       return null;
     }
 
-    // 2. 알림 메시지 구성
+    // 2. 알림 메시지 구성 (수신자의 timezone으로 시간 포맷)
     const messages = {
       lesson_proposed: {
         title: "새로운 수업 제안",
-        body: `수업이 제안되었습니다: ${formatDateTime(lesson.startTime)}`,
+        body: `수업이 제안되었습니다: ${formatDateTime(lesson.startTime, recipientTimezone)}`,
       },
       lesson_confirmed: {
         title: "수업 확정",
-        body: `수업이 확정되었습니다: ${formatDateTime(lesson.startTime)}`,
+        body: `수업이 확정되었습니다: ${formatDateTime(lesson.startTime, recipientTimezone)}`,
       },
       lesson_cancelled: {
         title: "수업 취소",
@@ -177,11 +188,17 @@ async function sendNotification(params: {
 }
 
 /**
- * Timestamp를 한국어 형식으로 포맷팅
+ * Timestamp를 수신자의 timezone에 맞게 포맷팅
+ * @param timestamp - Firestore Timestamp
+ * @param timezone - IANA timezone (e.g., 'Asia/Seoul', 'Asia/Manila')
  */
-function formatDateTime(timestamp: admin.firestore.Timestamp): string {
+function formatDateTime(
+  timestamp: admin.firestore.Timestamp,
+  timezone: string
+): string {
   const date = timestamp.toDate();
   return date.toLocaleString("ko-KR", {
+    timeZone: timezone,
     month: "short",
     day: "numeric",
     hour: "2-digit",
