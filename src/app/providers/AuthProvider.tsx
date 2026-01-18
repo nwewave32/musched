@@ -9,7 +9,7 @@ import {
   type User as FirebaseUser,
 } from "firebase/auth";
 import type { User } from "@shared/types";
-import { getUserProfile, createUserProfile } from "@entities/user/api";
+import { getUserProfile, createUserProfile, subscribeToUserProfile } from "@entities/user/api";
 import {
   refreshFCMTokenIfNeeded,
   setupTokenRefreshOnVisibility,
@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const visibilityCleanupRef = useRef<(() => void) | null>(null);
+  const profileUnsubscribeRef = useRef<(() => void) | null>(null);
 
   // Firebase 인증 상태 변경 리스너
   useEffect(() => {
@@ -59,14 +60,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log("🔐 Auth state changed:", user?.uid);
       setFirebaseUser(user);
 
-      // 기존 visibility 리스너 정리
+      // 기존 리스너 정리
       if (visibilityCleanupRef.current) {
         visibilityCleanupRef.current();
         visibilityCleanupRef.current = null;
       }
+      if (profileUnsubscribeRef.current) {
+        profileUnsubscribeRef.current();
+        profileUnsubscribeRef.current = null;
+      }
 
       if (user) {
-        // Firestore에서 사용자 프로필 가져오기
+        // Firestore에서 사용자 프로필 가져오기 (초기 로딩용)
         try {
           console.log("📥 Fetching user profile for:", user.uid);
           let userProfile = await getUserProfile(user.uid);
@@ -79,12 +84,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               role: "student", // 기본값
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             });
-            userProfile = await getUserProfile(user.uid);
-            console.log("✅ Default profile created:", userProfile);
+            console.log("✅ Default profile created");
           }
 
-          console.log("✅ User profile loaded:", userProfile);
-          setCurrentUser(userProfile);
+          // 실시간 구독 설정
+          profileUnsubscribeRef.current = subscribeToUserProfile(user.uid, (profile) => {
+            console.log("🔄 User profile updated:", profile?.fcmToken ? "has token" : "no token");
+            setCurrentUser(profile);
+          });
 
           // FCM 토큰 갱신 확인 (알림 권한이 있는 경우에만)
           refreshFCMTokenIfNeeded(user.uid);
@@ -107,9 +114,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     return () => {
       unsubscribe();
-      // cleanup visibility listener on unmount
       if (visibilityCleanupRef.current) {
         visibilityCleanupRef.current();
+      }
+      if (profileUnsubscribeRef.current) {
+        profileUnsubscribeRef.current();
       }
     };
   }, []);

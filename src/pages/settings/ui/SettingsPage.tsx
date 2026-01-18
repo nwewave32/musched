@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@app/providers";
 import {
   requestNotificationPermission,
@@ -20,9 +20,7 @@ export const SettingsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (currentUser?.fcmToken) {
-      setNotificationEnabled(true);
-    }
+    setNotificationEnabled(!!currentUser?.fcmToken);
   }, [currentUser]);
 
   const handleToggleNotifications = async (enabled: boolean) => {
@@ -102,43 +100,60 @@ export const SettingsPage = () => {
         </CardHeader>
         <CardContent className="space-y-2 text-xs font-mono">
           <div className="grid grid-cols-[120px_1fr] gap-2">
-            <span className="font-semibold">Messaging:</span>
-            <span className={messaging ? "text-green-600" : "text-red-600"}>
-              {messaging ? "✅ Supported" : "❌ Not Supported"}
-            </span>
-
-            <span className="font-semibold">Service Worker:</span>
-            <span className={"serviceWorker" in navigator ? "text-green-600" : "text-red-600"}>
-              {"serviceWorker" in navigator ? "✅ Supported" : "❌ Not Supported"}
-            </span>
-
-            <span className="font-semibold">Notification API:</span>
-            <span className={"Notification" in window ? "text-green-600" : "text-red-600"}>
-              {"Notification" in window ? "✅ Available" : "❌ Not Available"}
-            </span>
-
-            <span className="font-semibold">Permission:</span>
-            <span>
-              {"Notification" in window ? Notification.permission : "N/A"}
-            </span>
-
-            <span className="font-semibold">FCM Token:</span>
-            <span className={currentUser?.fcmToken ? "text-green-600" : "text-gray-400"}>
-              {currentUser?.fcmToken ? "✅ Saved" : "❌ Not saved"}
-            </span>
-
-            <span className="font-semibold">User Agent:</span>
-            <span className="break-all text-[10px]">
-              {navigator.userAgent}
-            </span>
-
-            <span className="font-semibold">Platform:</span>
-            <span>{navigator.platform}</span>
-
-            <span className="font-semibold">Standalone:</span>
-            <span className={(window.matchMedia('(display-mode: standalone)').matches) ? "text-green-600" : "text-orange-600"}>
-              {(window.matchMedia('(display-mode: standalone)').matches) ? "✅ PWA Mode" : "⚠️ Browser Mode"}
-            </span>
+            {[
+              {
+                label: "Messaging",
+                condition: !!messaging,
+                trueText: "✅ Supported",
+                falseText: "❌ Not Supported",
+              },
+              {
+                label: "Service Worker",
+                condition: "serviceWorker" in navigator,
+                trueText: "✅ Supported",
+                falseText: "❌ Not Supported",
+              },
+              {
+                label: "Notification API",
+                condition: "Notification" in window,
+                trueText: "✅ Available",
+                falseText: "❌ Not Available",
+              },
+              {
+                label: "Permission",
+                value: "Notification" in window ? Notification.permission : "N/A",
+              },
+              {
+                label: "FCM Token",
+                condition: !!currentUser?.fcmToken,
+                trueText: "✅ Saved",
+                falseText: "❌ Not saved",
+                falseColor: "text-gray-400",
+              },
+              {
+                label: "User Agent",
+                value: navigator.userAgent,
+                className: "break-all text-[10px]",
+              },
+              {
+                label: "Platform",
+                value: navigator.platform,
+              },
+              {
+                label: "Standalone",
+                condition: window.matchMedia("(display-mode: standalone)").matches,
+                trueText: "✅ PWA Mode",
+                falseText: "⚠️ Browser Mode",
+                falseColor: "text-orange-600",
+              },
+            ].map(({ label, condition, trueText, falseText, falseColor = "text-red-600", value, className }) => (
+              <React.Fragment key={label}>
+                <span className="font-semibold">{label}:</span>
+                <span className={className ?? (value !== undefined ? undefined : condition ? "text-green-600" : falseColor)}>
+                  {value !== undefined ? value : condition ? trueText : falseText}
+                </span>
+              </React.Fragment>
+            ))}
           </div>
 
           {!messaging && (

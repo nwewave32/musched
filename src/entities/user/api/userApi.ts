@@ -3,6 +3,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  onSnapshot,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@shared/config/firebase";
@@ -50,4 +51,24 @@ export const updateUserProfile = async (
 ): Promise<void> => {
   const docRef = doc(db, COLLECTION_NAME, userId);
   await updateDoc(docRef, data);
+};
+
+/**
+ * 사용자 프로필 실시간 구독
+ */
+export const subscribeToUserProfile = (
+  userId: string,
+  onUpdate: (user: User | null) => void
+): (() => void) => {
+  const docRef = doc(db, COLLECTION_NAME, userId);
+  return onSnapshot(docRef, (docSnap) => {
+    if (!docSnap.exists()) {
+      onUpdate(null);
+      return;
+    }
+    onUpdate({
+      id: docSnap.id,
+      ...docSnap.data(),
+    } as User);
+  });
 };
