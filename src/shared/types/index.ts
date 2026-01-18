@@ -39,6 +39,7 @@ export interface Lesson {
   id: string;
   proposedBy: string; // userId
   confirmedBy?: string; // userId
+  cancelledBy?: string; // userId - 취소한 사람
   startTime: Timestamp;
   endTime: Timestamp; // startTime + 1 hour
   status: LessonStatus;

@@ -158,7 +158,8 @@ export const getAllLessons = async (): Promise<Lesson[]> => {
  */
 export const cancelLesson = async (
   id: string,
-  cancellationReason: string
+  cancellationReason: string,
+  cancelledBy: string
 ): Promise<void> => {
   const docRef = doc(db, COLLECTION_NAME, id);
 
@@ -178,6 +179,7 @@ export const cancelLesson = async (
   await updateDoc(docRef, {
     status: "cancelled",
     cancellationReason,
+    cancelledBy,
     updatedAt: Timestamp.now(),
   });
 };

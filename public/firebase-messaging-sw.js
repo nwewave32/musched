@@ -17,16 +17,27 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // Background 메시지 핸들러
+// notification 필드가 있으면 FCM SDK가 자동으로 알림 표시
+// 여기서는 추가 로직만 처리 (중복 알림 방지)
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
-  const notificationTitle = payload.notification?.title || 'MuSched';
+  // notification 필드가 있으면 SDK가 자동 표시하므로 수동 표시 안 함
+  // data-only 메시지인 경우에만 수동 표시
+  if (payload.notification) {
+    console.log('[firebase-messaging-sw.js] Notification field exists, SDK will handle display');
+    return;
+  }
+
+  // data-only 메시지 처리 (fallback)
+  const data = payload.data || {};
+  const notificationTitle = data.title || 'MuSched';
   const notificationOptions = {
-    body: payload.notification?.body || '',
+    body: data.body || '',
     icon: '/pwa-192x192.png',
     badge: '/favicon-32x32.png',
-    data: payload.data || {},
-    tag: payload.data?.lessonId || 'default',
+    data: data,
+    tag: data.lessonId || 'default',
     requireInteraction: false
   };
 

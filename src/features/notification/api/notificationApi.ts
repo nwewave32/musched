@@ -1,5 +1,6 @@
 import { getToken, deleteToken } from "firebase/messaging";
-import { messaging, VAPID_KEY } from "@shared/config/firebase";
+import { doc, updateDoc, deleteField } from "firebase/firestore";
+import { messaging, VAPID_KEY, db } from "@shared/config/firebase";
 import { updateUserProfile, getUserProfile } from "@entities/user/api/userApi";
 
 /**
@@ -75,8 +76,9 @@ export const deleteFCMToken = async (userId: string): Promise<void> => {
     await deleteToken(messaging);
     console.log("FCM token deleted");
 
-    // Firestore에서 토큰 제거
-    await updateUserProfile(userId, { fcmToken: undefined });
+    // Firestore에서 토큰 필드 삭제 (deleteField 사용)
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, { fcmToken: deleteField() });
     console.log("FCM token removed from Firestore");
   } catch (error) {
     console.error("Failed to delete FCM token:", error);

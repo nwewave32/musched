@@ -17,10 +17,11 @@ export const setupForegroundMessageListener = () => {
   onMessage(messaging, (payload) => {
     console.log("Foreground message received:", payload);
 
-    // 알림 표시
-    const notificationTitle = payload.notification?.title || "MuSched";
+    // notification 필드 우선, 없으면 data에서 추출
+    const notificationTitle = payload.notification?.title || payload.data?.title || "MuSched";
+    const notificationBody = payload.notification?.body || payload.data?.body || "";
     const notificationOptions = {
-      body: payload.notification?.body || "",
+      body: notificationBody,
       icon: "/pwa-192x192.png",
       badge: "/favicon-32x32.png",
       data: payload.data,

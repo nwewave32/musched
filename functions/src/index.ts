@@ -11,6 +11,7 @@ admin.initializeApp();
 interface Lesson {
   proposedBy: string;
   confirmedBy?: string;
+  cancelledBy?: string;
   startTime: admin.firestore.Timestamp;
   endTime: admin.firestore.Timestamp;
   status: "pending" | "confirmed" | "cancelled" | "rejected";
@@ -70,10 +71,20 @@ export const onLessonChange = functions.firestore
       before.status === "confirmed" &&
       after.status === "cancelled"
     ) {
-      // proposedBy의 상대방에게 알림 (partnerId 조회)
-      const recipientId = await getPartnerId(after.proposedBy);
+      // cancelledBy가 있으면 취소자가 아닌 상대방에게 알림
+      // cancelledBy가 없으면 proposedBy의 파트너에게 알림 (fallback)
+      let recipientId: string | null = null;
+
+      if (after.cancelledBy) {
+        // 취소자의 파트너에게 알림
+        recipientId = await getPartnerId(after.cancelledBy);
+      } else {
+        // fallback: proposedBy의 파트너에게 알림
+        recipientId = await getPartnerId(after.proposedBy);
+      }
+
       if (!recipientId) {
-        console.log(`No partner found for user ${after.proposedBy}`);
+        console.log(`No partner found for cancellation notification`);
         return null;
       }
 
@@ -163,6 +174,7 @@ async function sendNotification(params: {
 
     const notification = messages[type];
 
+    // notification + data 전송 (iOS PWA는 notification 필드 필수)
     const message = {
       notification: {
         title: notification.title,

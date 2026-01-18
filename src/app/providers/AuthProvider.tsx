@@ -14,6 +14,7 @@ import {
   refreshFCMTokenIfNeeded,
   setupTokenRefreshOnVisibility,
 } from "@features/notification";
+import { setupForegroundMessageListener } from "@shared/lib/fcm";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -87,6 +88,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
           // FCM 토큰 갱신 확인 (알림 권한이 있는 경우에만)
           refreshFCMTokenIfNeeded(user.uid);
+
+          // Foreground 메시지 리스너 설정
+          setupForegroundMessageListener();
 
           // Visibility 변경 시 토큰 갱신 리스너 설정
           visibilityCleanupRef.current = setupTokenRefreshOnVisibility(user.uid);

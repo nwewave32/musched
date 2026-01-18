@@ -82,6 +82,15 @@ export const CalendarPage = () => {
           </div>
           <div className='flex flex-col gap-2 sm:flex-row'>
             <EventDialog userId={userId} onSuccess={loadEvents} />
+            <Button
+              variant='outline'
+              onClick={() => {
+                loadEvents();
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Loading...' : 'Reload'}
+            </Button>
             <Button variant='outline' onClick={signOut}>
               Sign Out
             </Button>
