@@ -32,3 +32,6 @@ scripts/serviceAccountKey.json
 .firebase
 .firebase/*
 *.cache
+
+# Generated Service Worker (contains Firebase config)
+public/firebase-messaging-sw.js
