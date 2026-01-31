@@ -135,7 +135,15 @@ export const EventDialog = ({
     try {
       // 사용자의 타임존으로 입력된 시간을 UTC로 변환
       const start = createDateInTimezone(startDate, startTime, user.timezone);
-      const end = createDateInTimezone(startDate, endTime, user.timezone);
+
+      // endTime이 startTime보다 이르면 자정을 넘긴 것이므로 다음 날 날짜 사용
+      let endDate = startDate;
+      if (endTime <= startTime) {
+        const [year, month, day] = startDate.split('-').map(Number);
+        const nextDay = new Date(year, month - 1, day + 1);
+        endDate = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+      }
+      const end = createDateInTimezone(endDate, endTime, user.timezone);
 
       if (isLesson) {
         if (isEditMode && editEvent?.type === 'lesson') {
