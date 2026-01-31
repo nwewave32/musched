@@ -21,6 +21,7 @@ import {
   formatTimeInTimezone,
 } from "@shared/lib";
 import { EventDialog } from "@features/availability-management";
+import { sendTardinessAlert } from "@features/tardiness-alert";
 
 interface EventDetailPanelProps {
   selectedDate: Date;
@@ -53,6 +54,50 @@ const EventCard = ({
   const [creatorUser, setCreatorUser] = useState<User | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [isSendingAlert, setIsSendingAlert] = useState(false);
+  const [alertSent, setAlertSent] = useState(false);
+  const [isInLessonTime, setIsInLessonTime] = useState(false);
+
+  // 수업 시간 내인지 체크 (confirmed lesson만)
+  // - 1분 간격 polling + 앱 포그라운드 복귀 시 즉시 체크
+  useEffect(() => {
+    if (event.type !== "lesson" || event.data.status !== "confirmed") return;
+
+    const check = () => {
+      const now = new Date();
+      const start = event.data.startTime.toDate();
+      const end = event.data.endTime.toDate();
+      setIsInLessonTime(now >= start && now <= end);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") check();
+    };
+
+    check();
+    const interval = setInterval(check, 60000);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [event]);
+
+  // 지각 알림 전송 핸들러
+  const handleSendTardinessAlert = async () => {
+    if (event.type !== "lesson") return;
+
+    setIsSendingAlert(true);
+    try {
+      await sendTardinessAlert(event.data.id, userId);
+      setAlertSent(true);
+    } catch (error) {
+      console.error("Failed to send tardiness alert:", error);
+      alert("Failed to send tardiness alert");
+    } finally {
+      setIsSendingAlert(false);
+    }
+  };
 
   // 불가 시간 생성자 정보 가져오기
   useEffect(() => {
@@ -270,6 +315,24 @@ const EventCard = ({
                 </Button>
               </>
             )}
+
+          {event.type === "lesson" &&
+           event.data.status === "confirmed" &&
+           isInLessonTime && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSendTardinessAlert}
+              disabled={isSendingAlert || alertSent}
+              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+            >
+              {isSendingAlert
+                ? "Sending..."
+                : alertSent
+                ? "Alert Sent"
+                : "Tardiness Alert"}
+            </Button>
+          )}
 
           {event.type === "lesson" &&
            event.data.status === "confirmed" &&

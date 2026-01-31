@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions as getFirebaseFunctions } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
 
 // Firebase 설정 - 환경변수로 관리 권장
@@ -19,6 +20,7 @@ export const app = initializeApp(firebaseConfig);
 // Firebase 서비스
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const functions = getFirebaseFunctions(app);
 
 // Messaging은 지원되는 경우에만 초기화
 let messaging: ReturnType<typeof getMessaging> | null = null;

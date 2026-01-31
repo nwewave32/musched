@@ -100,6 +100,85 @@ export const onLessonChange = functions.firestore
   });
 
 /**
+ * Callable Function: 지각 알림 전송
+ * 클라이언트에서 직접 호출하여 상대방에게 지각 알림 푸시
+ */
+export const sendTardinessAlert = functions.https.onCall(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async (data, context) => {
+    const { lessonId, senderId } = data as {
+      lessonId: string;
+      senderId: string;
+    };
+
+    if (!lessonId || !senderId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "lessonId and senderId are required"
+      );
+    }
+
+    // 1. 레슨 조회
+    const lessonDoc = await admin
+      .firestore()
+      .collection("lessons")
+      .doc(lessonId)
+      .get();
+
+    if (!lessonDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Lesson not found");
+    }
+
+    const lesson = lessonDoc.data() as Lesson;
+
+    // 2. 레슨 상태 검증
+    if (lesson.status !== "confirmed") {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Lesson is not confirmed"
+      );
+    }
+
+    // 3. 현재 시간이 수업 시간 범위인지 검증
+    const now = admin.firestore.Timestamp.now();
+    if (now < lesson.startTime || now > lesson.endTime) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Current time is not within lesson time"
+      );
+    }
+
+    // 4. sender 이름 조회
+    const senderDoc = await admin
+      .firestore()
+      .collection("users")
+      .doc(senderId)
+      .get();
+    const senderName = senderDoc.data()?.name || senderDoc.data()?.email || "상대방";
+
+    // 5. 수신자 (sender의 파트너) 조회
+    const recipientId = await getPartnerId(senderId);
+    if (!recipientId) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "Partner not found"
+      );
+    }
+
+    // 6. 알림 전송
+    await sendNotification({
+      type: "tardiness_alert",
+      lesson,
+      recipientId,
+      lessonId,
+      senderName,
+    });
+
+    return { success: true };
+  }
+);
+
+/**
  * 상대방 ID 조회 (partnerId 필드)
  */
 async function getPartnerId(userId: string): Promise<string | null> {
@@ -125,12 +204,13 @@ async function getPartnerId(userId: string): Promise<string | null> {
  * FCM 푸시 알림 전송
  */
 async function sendNotification(params: {
-  type: "lesson_proposed" | "lesson_confirmed" | "lesson_cancelled";
+  type: "lesson_proposed" | "lesson_confirmed" | "lesson_cancelled" | "tardiness_alert";
   lesson: Lesson;
   recipientId: string;
   lessonId: string;
+  senderName?: string;
 }) {
-  const { type, lesson, recipientId, lessonId } = params;
+  const { type, lesson, recipientId, lessonId, senderName } = params;
 
   try {
     // 1. 수신자의 FCM 토큰 조회
@@ -169,6 +249,10 @@ async function sendNotification(params: {
         body: `수업이 취소되었습니다${
           lesson.cancellationReason ? `: ${lesson.cancellationReason}` : ""
         }`,
+      },
+      tardiness_alert: {
+        title: "수업 지각 알림",
+        body: `${senderName || "상대방"}님이 수업 대기 중입니다`,
       },
     };
 
