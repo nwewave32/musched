@@ -1,12 +1,13 @@
+import { useAuth } from '@app/providers';
 import { getAllLessons } from '@entities/lesson/api';
 import { getAllUnavailableTimes } from '@entities/unavailable-time/api';
 import { EventDialog } from '@features/availability-management';
-import { useAuth } from '@app/providers';
+import { FOREGROUND_NOTIFICATION_CLICK_EVENT } from '@shared/lib/fcm';
 import type { Lesson, UnavailableTime } from '@shared/types';
 import { Button, Card, CardContent } from '@shared/ui';
-import { FOREGROUND_NOTIFICATION_CLICK_EVENT } from '@shared/lib/fcm';
 import { CalendarView } from '@widgets/calendar-view';
-import { useEffect, useState, useCallback } from 'react';
+import { LogOut, RefreshCw, Settings } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export const CalendarPage = () => {
@@ -54,7 +55,10 @@ export const CalendarPage = () => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'NOTIFICATION_CLICKED') {
-        console.log('Background notification clicked, refreshing data...', event.data);
+        console.log(
+          'Background notification clicked, refreshing data...',
+          event.data
+        );
         loadEvents();
       }
     };
@@ -70,7 +74,10 @@ export const CalendarPage = () => {
   useEffect(() => {
     const handleForegroundNotificationClick = (event: Event) => {
       const customEvent = event as CustomEvent;
-      console.log('Foreground notification clicked, refreshing data...', customEvent.detail);
+      console.log(
+        'Foreground notification clicked, refreshing data...',
+        customEvent.detail
+      );
       loadEvents();
     };
 
@@ -88,12 +95,12 @@ export const CalendarPage = () => {
   }, [loadEvents]);
 
   return (
-    <div className='min-h-screen bg-gray-50 p-4'>
+    <div className='min-h-screen bg-gray-50 sm:p-4'>
       <div className='mx-auto max-w-7xl'>
-        <div className='mb-6 flex items-center justify-between'>
+        <div className='mb-6 flex items-center justify-between pt-4 px-4 sm:p-0'>
           <div>
             <h1 className='text-3xl font-bold text-gray-900'>MuSched</h1>
-            <p className='text-gray-600 mt-1'>
+            <p className='text-gray-600 mt-1 max-w-[50vw] sm:max-w-none'>
               Management for online class schedule
             </p>
             {currentUser && (
@@ -102,7 +109,7 @@ export const CalendarPage = () => {
               </p>
             )}
           </div>
-          <div className='flex flex-col gap-2 sm:flex-row'>
+          <div className='grid grid-cols-2 gap-2 sm:flex sm:flex-row'>
             <EventDialog userId={userId} onSuccess={loadEvents} />
             <Button
               variant='outline'
@@ -111,10 +118,10 @@ export const CalendarPage = () => {
               }}
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Reload'}
+              {isLoading ? 'Loading...' : <RefreshCw size={24} />}
             </Button>
             <Button variant='outline' onClick={signOut}>
-              Sign Out
+              <LogOut size={24} />
             </Button>
             <Button
               variant='outline'
@@ -122,7 +129,7 @@ export const CalendarPage = () => {
                 navigate('/settings');
               }}
             >
-              Settings
+              <Settings size={24} />
             </Button>
           </div>
         </div>
