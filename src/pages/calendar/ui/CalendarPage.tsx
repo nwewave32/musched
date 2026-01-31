@@ -4,8 +4,9 @@ import { EventDialog } from '@features/availability-management';
 import { useAuth } from '@app/providers';
 import type { Lesson, UnavailableTime } from '@shared/types';
 import { Button, Card, CardContent } from '@shared/ui';
+import { FOREGROUND_NOTIFICATION_CLICK_EVENT } from '@shared/lib/fcm';
 import { CalendarView } from '@widgets/calendar-view';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export const CalendarPage = () => {
@@ -20,7 +21,7 @@ export const CalendarPage = () => {
   const navigate = useNavigate();
 
   // 불가 시간 & 수업 로드 (모든 사용자의 이벤트)
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     try {
       setIsLoading(true);
       const [times, lessonList] = await Promise.all([
@@ -34,7 +35,7 @@ export const CalendarPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // 초기 로드 및 URL 파라미터 확인
   useEffect(() => {
@@ -49,11 +50,11 @@ export const CalendarPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Service Worker에서 오는 메시지 리스너
+  // Service Worker에서 오는 메시지 리스너 (백그라운드 알림 클릭)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'NOTIFICATION_CLICKED') {
-        console.log('Notification clicked, refreshing data...', event.data);
+        console.log('Background notification clicked, refreshing data...', event.data);
         loadEvents();
       }
     };
@@ -63,7 +64,28 @@ export const CalendarPage = () => {
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [loadEvents]);
+
+  // 포그라운드 알림 클릭 이벤트 리스너
+  useEffect(() => {
+    const handleForegroundNotificationClick = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Foreground notification clicked, refreshing data...', customEvent.detail);
+      loadEvents();
+    };
+
+    window.addEventListener(
+      FOREGROUND_NOTIFICATION_CLICK_EVENT,
+      handleForegroundNotificationClick
+    );
+
+    return () => {
+      window.removeEventListener(
+        FOREGROUND_NOTIFICATION_CLICK_EVENT,
+        handleForegroundNotificationClick
+      );
+    };
+  }, [loadEvents]);
 
   return (
     <div className='min-h-screen bg-gray-50 p-4'>
